@@ -1,0 +1,14 @@
+{
+  "name": "socketio",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "start":"nodemon app.js"
+  },
+  "author": "George Mburu",
+  "license": "ISC",
+  "dependencies": {
+    "socket.io": "^2.2.0"
+  }
+}

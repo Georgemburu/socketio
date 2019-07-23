@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Socket.io app</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- <link rel="stylesheet" type="text/css" media="screen" href="main.css"> -->
+    <script src="/socket.io/socket.io.js"></script>
+<style>
+.hide {
+    display: none;
+}
+.show {
+    display: block;
+}
+#usersDisp {
+    box-shadow: 0px 0px 0px 1px black;
+    min-height: 2em;
+    width: 8em;
+    margin: auto;
+    z-index: 100;
+    list-style: none;
+    padding: 0;
+    /* margin: 0; */
+}
+#usersDisp  li {
+    background-color: rgb(196, 204, 204);
+    width: 8em;
+    padding: .4em 0;
+    text-align: center;
+}
+#usersDisp  li:hover {
+    cursor: pointer;
+    background-color: rgb(234, 240, 240);
+}
+</style>
+</head>
+<body>
+    <ul id="usersDisp" class="hide">
+    </ul>
+    <div id="usersLoggedIn"></div>
+    <p>Type message</p>
+    <input type="text" id="msg">
+    <input type="submit" value="submit" id="submit_btn">
+    <div id="typingDispDiv"></div>
+    <ul id="ul">
+
+    </ul>
+    <script>
+        const socket = io()
+        console.log(socket)
+        let ACCESS_GRANTED = false;
+        let userNameOfUser = ''
+        let LOGIN_PAGE = null;
+        if(ACCESS_GRANTED===false){
+            let body = document.querySelector('body');
+            Array.from(body.children,(chld)=>{
+                // chld.style.visibility = 'hidden'
+                chld.classList.add('hide')
+            })
+            let div = document.createElement('div');
+            let p = document.createElement('p');
+            p.innerText = 'Username';
+            let Username_input = document.createElement('input');
+            Username_input.type = 'text';
+            Username_input.id = 'username';
+            let LoginBtn_input = document.createElement('input');
+            LoginBtn_input.type = 'submit';
+            LoginBtn_input.value = 'Login'
+            LoginBtn_input.addEventListener('click',(e)=>{
+                let uuid = Username_input.value;
+                if(!uuid){
+
+                }else {
+                    socket.emit('username',uuid)
+                    userNameOfUser = uuid
+                    Username_input.value =''
+                }
+            })
+
+            div.appendChild(p)
+            div.appendChild(Username_input)
+            div.appendChild(LoginBtn_input)
+            LOGIN_PAGE = div;
+            body.appendChild(div)
+
+            
+        }
+        socket.on('successLogin',(username)=>{
+            if(username===userNameOfUser){
+                ACCESS_GRANTED = true;
+                let body = document.querySelector('body');
+                LOGIN_PAGE.remove() 
+            Array.from(body.children,(chld)=>{
+                console.log(chld)
+                // chld.style.visibility = 'visible'
+                if(chld.localName!=='script'){
+                    chld.classList.replace('hide','show')
+
+                }
+            })
+            }
+        })
+        socket.on('displayTyping',(obj)=>{
+            let typingDispDiv = document.getElementById('typingDispDiv')
+            typingDispDiv.innerText = `${obj.username} is typing..`
+        })
+        socket.on('remove_displayTyping',()=>{
+            let typingDispDiv = document.getElementById('typingDispDiv')
+            typingDispDiv.innerText = ``
+        })
+        socket.on('usersLoggedIn',(len)=>{
+            let usersLoggedInElem = document.getElementById('usersLoggedIn')
+            usersLoggedInElem.innerText = `${len} online`
+        })
+        socket.on('showOnlineUsers',(usersObj)=>{
+           let users = JSON.parse(usersObj);
+            let usersDispElem = document.getElementById('usersDisp');
+            while(usersDispElem.children.length>0){
+                Array.from(usersDispElem.children,(chld)=>{
+                chld.remove()
+                })
+                usersDispElem = document.getElementById('usersDisp');
+            }
+            
+            users.forEach((user)=>{
+                let li = document.createElement('li');
+                li.innerText = user.username!==undefined?user.username:'?';
+                li.setAttribute('key',user.id)
+                usersDispElem.classList.replace('hide','show')
+                usersDispElem.appendChild(li)
+            })
+            
+            console.log('usersObj', usersObj)
+        })
+        document.getElementById('usersLoggedIn').addEventListener('mouseover',(e)=>{
+            console.log(e)
+            e.target.style.textDecoration = 'underline'
+            e.target.style.cursor = 'pointer'
+        })
+        document.getElementById('usersLoggedIn').addEventListener('mouseleave',(e)=>{
+            console.log(e)
+            e.target.style.textDecoration = 'none'
+            e.target.style.cursor = ''
+        })
+        document.getElementById('usersLoggedIn').addEventListener('click',(e)=>{
+            socket.emit('getOnlineUsers',null)
+        })
+        document.getElementById('msg').addEventListener('keyup',(e)=>{
+            socket.emit('typing',true)
+        })
+        document.getElementById('msg').addEventListener('blur',(e)=>{
+            socket.emit('typing',false)
+        })
+        let submit_btn = document.getElementById('submit_btn');
+        submit_btn.addEventListener('click',(e)=>{
+            let msg = document.getElementById('msg').value;
+            if(!msg){
+
+            }else {
+    
+                socket.emit('chat message',msg)
+                document.getElementById('msg').value = ''
+            }
+        })
+        socket.on('broadCastMsg',(msg)=>{
+            let ul = document.getElementById('ul')
+            let li = document.createElement('li')
+            let name_span = document.createElement('span')
+            name_span.innerText = `${msg.username}:-  `
+            let msg_span = document.createElement('span')
+            msg_span.innerText = msg.message
+
+            li.appendChild(name_span)
+            li.appendChild(msg_span)
+
+            // li.innerText = msg
+            ul.appendChild(li)
+            console.log(msg)
+        })
+
+    </script>
+</body>
+</html>
